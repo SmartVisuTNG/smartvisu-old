@@ -19,7 +19,7 @@
 {% macro list(id, title, count, repeat) %}
 	{% set uid = uid(page, id) %}
 
-	<div id="{{ uid }}-phonelist" data-widget="phone.list" class="phonelist" data-repeat="{{ repeat|default('15m') }}">
+	<div id="{{ uid }}-phonelist" data-widget="phone.list" class="phonelist" data-repeat="{{ repeat|default('15i') }}">
 		{% if title %} <h2>{{ title }}</h2> {% endif %}
 		<ul data-role="listview">
 		</ul>
@@ -75,7 +75,7 @@
 {% macro missedlist(id, title, count, repeat) %}
 	{% set uid = uid(page, id) %}
 
-	<div id="{{ uid }}-missedlist" data-widget="phone.missedlist" class="phonelist" data-repeat="{{ repeat|default('15m') }}">
+	<div id="{{ uid }}-missedlist" data-widget="phone.missedlist" class="phonelist" data-repeat="{{ repeat|default('15i') }}">
 		{% if title %} <h2>{{ title }}</h2> {% endif %}
 		<ul data-role="listview">
 		</ul>

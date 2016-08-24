@@ -4,7 +4,7 @@
  * @author      Martin Gleiß
  * @copyright   2012 - 2015
  * @license     GPL [http://www.gnu.de]
- * ----------------------------------------------------------------------------- 
+ * -----------------------------------------------------------------------------
  */
 
 
@@ -25,6 +25,8 @@ $lang['format']['v']				= '%d V';
 $lang['format']['a']				= '%01,2f A';
 $lang['format']['w']				= '%01,2f W';
 $lang['format']['kwh']				= '%01,2f kWh';
+$lang['format']['lux']			    = '%01,0f lux';
+$lang['format']['m/s']				= '%01,1f m/s';
 
 $lang['format']['date']				= 'd.m.y';
 $lang['format']['time']				= 'H:i';

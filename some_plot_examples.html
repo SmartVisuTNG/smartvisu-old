@@ -1,0 +1,6 @@
+{{ plot.period('inoutemperatureplot', ['first.hallway.temperature', 'Wetter.temperature'], 'avg', '1w', 'now', 0, '', '', ['In','Out'], ['#aa0', '#a00'],'','','1h',500) }}
+{{ plot.multi_period('multirplottest',['first.hallway.temperature', 'Wetter.temperature'], 'avg', '1w', 'now', [10, -10], [30, 40], '', ['In','Out'], ['#aa0', '#a00'],'','',[1, 2],200) }}
+{{ plot.period('first.hallway.humidity-plot', 'first.hallway.humidity', 'avg', '1w','now', 0, '', '', ['Hum'], '','',['Time','Humidity'],'1h',200) }}
+{{ plot.period('first.hallway.abshumidity-plot', 'first.hallway.abshumidity', 'avg', '1w','now', 0, '', '', ['AbsHum'], '','','','1h') }}
+
+
