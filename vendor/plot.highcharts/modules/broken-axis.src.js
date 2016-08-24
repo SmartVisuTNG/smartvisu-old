@@ -1,20 +1,28 @@
 /**
- * Highcharts JS v4.1.3 (2015-02-27)
+ * Highcharts JS v4.2.6 (2016-08-02)
  * Highcharts Broken Axis module
  * 
- * Author: Stephane Vanraes, Torstein Honsi
  * License: www.highcharts.com/license
  */
 
-/*global HighchartsAdapter*/
-(function (H) {	
+(function (factory) {
+	/*= if (!build.assembly) { =*/
+	if (typeof module === 'object' && module.exports) {
+		module.exports = factory;
+		return;
+	}
+	/*= } =*/
+	factory(Highcharts);
+	
+}(function (H) {
 
-	"use strict";
+	'use strict';
 
 	var pick = H.pick,
 		wrap = H.wrap,
+		each = H.each,
 		extend = H.extend,
-		fireEvent = HighchartsAdapter.fireEvent,
+		fireEvent = H.fireEvent,
 		Axis = H.Axis,
 		Series = H.Series;
 
@@ -24,42 +32,47 @@
 
 	extend(Axis.prototype, {
 		isInBreak: function (brk, val) {
-			var repeat = brk.repeat || Infinity,
+			var ret,
+				repeat = brk.repeat || Infinity,
 				from = brk.from,
 				length = brk.to - brk.from,
 				test = (val >= from ? (val - from) % repeat :  repeat - ((from - val) % repeat));
 
 			if (!brk.inclusive) {
-				return (test < length && test !== 0);
+				ret = test < length && test !== 0;
 			} else {
-				return (test <= length);
+				ret = test <= length;
 			}
+			return ret;
 		},
 
 		isInAnyBreak: function (val, testKeep) {
-			// Sanity Check			
-			if (!this.options.breaks) { return false; }
 
 			var breaks = this.options.breaks,
-				i = breaks.length,
-				inbrk = false,
-				keep = false;
+				i = breaks && breaks.length,
+				inbrk,
+				keep,
+				ret;
 
+			
+			if (i) { 
 
-			while (i--) {
-				if (this.isInBreak(breaks[i], val)) {
-					inbrk = true;
-					if (!keep) {
-						keep = pick(breaks[i].showPoints, this.isXAxis ? false : true);
+				while (i--) {
+					if (this.isInBreak(breaks[i], val)) {
+						inbrk = true;
+						if (!keep) {
+							keep = pick(breaks[i].showPoints, this.isXAxis ? false : true);
+						}
 					}
 				}
-			}
 
-			if (inbrk && testKeep) {
-				return inbrk && !keep;
-			} else {
-				return inbrk;
+				if (inbrk && testKeep) {
+					ret = inbrk && !keep;
+				} else {
+					ret = inbrk;
+				}
 			}
+			return ret;
 		}
 	});
 
@@ -72,10 +85,6 @@
 				info = this.tickPositions.info,
 				newPositions = [],
 				i;
-
-			if (info && info.totalRange >= axis.closestPointRange) { 
-				return;
-			}
 
 			for (i = 0; i < tickPositions.length; i++) {
 				if (!axis.isInAnyBreak(tickPositions[i])) {
@@ -100,7 +109,7 @@
 
 			var axis = this;
 			
-			axis.doPostTranslate = true;
+			axis.isBroken = true;
 
 			this.val2lin = function (val) {
 				var nval = val,
@@ -110,7 +119,7 @@
 				for (i = 0; i < axis.breakArray.length; i++) {
 					brk = axis.breakArray[i];
 					if (brk.to <= val) {
-						nval -= (brk.len);
+						nval -= brk.len;
 					} else if (brk.from >= val) {
 						break;
 					} else if (axis.isInBreak(brk, val)) {
@@ -132,12 +141,11 @@
 					if (brk.from >= nval) {
 						break;
 					} else if (brk.to < nval) {
-						nval += (brk.to - brk.from);
+						nval += brk.len;
 					} else if (axis.isInBreak(brk, nval)) {
-						nval += (brk.to - brk.from);
+						nval += brk.len;
 					}
 				}
-
 				return nval;
 			};
 
@@ -168,14 +176,15 @@
 					i,
 					j;
 
-				// Min & Max Check
+				// Min & max check (#4247)
 				for (i in breaks) {
 					brk = breaks[i];
+					repeat = brk.repeat || Infinity;
 					if (axis.isInBreak(brk, min)) {
-						min += (brk.to % brk.repeat) - (min % brk.repeat);
+						min += (brk.to % repeat) - (min % repeat);
 					}
 					if (axis.isInBreak(brk, max)) {
-						max -= (max % brk.repeat) - (brk.from % brk.repeat);
+						max -= (max % repeat) - (brk.from % repeat);
 					}
 				}
 
@@ -206,11 +215,13 @@
 				}
 
 				breakArrayT.sort(function (a, b) {
+					var ret;
 					if (a.value === b.value) {
-						return (a.move === 'in' ? 0 : 1) - (b.move === 'in' ? 0 : 1);
+						ret = (a.move === 'in' ? 0 : 1) - (b.move === 'in' ? 0 : 1);
 					} else {
-						return a.value - b.value;
+						ret = a.value - b.value;
 					}
+					return ret;
 				});
 				
 				// Simplify the breaks
@@ -242,7 +253,6 @@
 
 				axis.min = min;
 				axis.max = max;
-
 			};
 		}
 	});
@@ -256,49 +266,63 @@
 			yAxis = series.yAxis,
 			points = series.points,
 			point,
-			i = points.length;
+			i = points.length,
+			connectNulls = series.options.connectNulls,
+			nullGap;
 
 
 		if (xAxis && yAxis && (xAxis.options.breaks || yAxis.options.breaks)) {
 			while (i--) {
 				point = points[i];
 
-				if (xAxis.isInAnyBreak(point.x, true) || yAxis.isInAnyBreak(point.y, true)) {
+				nullGap = point.y === null && connectNulls === false; // respect nulls inside the break (#4275)
+				if (!nullGap && (xAxis.isInAnyBreak(point.x, true) || yAxis.isInAnyBreak(point.y, true))) {
 					points.splice(i, 1);
-					this.data[i].destroyElements(); // removes the graphics for this point if they exist
+					if (this.data[i]) {
+						this.data[i].destroyElements(); // removes the graphics for this point if they exist
+					}
 				}
 			}
 		}
 
 	});
 
-	wrap(H.seriesTypes.column.prototype, 'drawPoints', function (proceed) {
+	function drawPointsWrapped(proceed) {
 		proceed.apply(this);
+		this.drawBreaks(this.xAxis, ['x']);
+		this.drawBreaks(this.yAxis, pick(this.pointArrayMap, ['y']));
+	}
 
+	H.Series.prototype.drawBreaks = function (axis, keys) {
 		var series = this,
 			points = series.points,
-			yAxis = series.yAxis,
-			breaks = yAxis.breakArray || [],
-			point,
-			brk,
-			i,
-			j,
+			breaks,
+			threshold,
+			eventName,
 			y;
 
-		for (i = 0; i < points.length; i++) {
-			point = points[i];
-			y = point.stackY || point.y;
-			for (j = 0; j < breaks.length; j++) {
-				brk = breaks[j];
-				if (y < brk.from) {
-					break;
-				} else if (y > brk.to) {
-					fireEvent(yAxis, 'pointBreak', {point: point, brk: brk});
-				} else {
-					fireEvent(yAxis, 'pointInBreak', {point: point, brk: brk});
-				}
-			}
-		}
+		each(keys, function (key) {
+			breaks = axis.breakArray || [];
+			threshold = axis.isXAxis ? axis.min : pick(series.options.threshold, axis.min);
+			each(points, function (point) {
+				y = pick(point['stack' + key.toUpperCase()], point[key]);
+				each(breaks, function (brk) {
+					eventName = false;
 
-	});
-}(Highcharts));
+					if ((threshold < brk.from && y > brk.to) || (threshold > brk.from && y < brk.from)) { 
+						eventName = 'pointBreak';
+					} else if ((threshold < brk.from && y > brk.from && y < brk.to) || (threshold > brk.from && y > brk.to && y < brk.from)) { // point falls inside the break
+						eventName = 'pointInBreak';
+					} 
+					if (eventName) {
+						fireEvent(axis, eventName, { point: point, brk: brk });
+					}
+				});
+			});
+		});
+	};
+
+	wrap(H.seriesTypes.column.prototype, 'drawPoints', drawPointsWrapped);
+	wrap(H.Series.prototype, 'drawPoints', drawPointsWrapped);
+
+}));
