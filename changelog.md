@@ -15,6 +15,7 @@
 - New icon _light_standing_light.svg_
 
 ### Other New Features
+- Added FHEM driver (incl. HTTPS and reverse proxy support)
 - Added proxy settings in configuration
 - Auto reconnect for drivers can be enabled in configuration
 
